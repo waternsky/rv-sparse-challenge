@@ -16,7 +16,44 @@ void sparse__multiply(int rows, int cols, const double *A, const double *x,
 void sparse_multiply(int rows, int cols, const double *A, const double *x,
                      int *out_nnz, double *values, int *col_indices,
                      int *row_ptrs, double *y) {
-  // TODO
+  const double tol = 1e-7;
+
+  // we will first get A into CSR representation
+  // BEGIN
+  *out_nnz = 0; // number of non-zero elements
+  row_ptrs[0] = 0;
+  int idx = 0; // index in values and col_indices array
+               // for non-zero values
+
+  for (int i = 0; i < rows * cols; ++i) {
+    if (fabs(A[i]) > tol) { // non-zero value
+      values[idx] = A[i];
+      col_indices[idx] = i % cols;
+      *out_nnz += 1;
+      idx++;
+    }
+
+    // update row_ptrs when row ends
+    if ((i + 1) % cols == 0) {
+      row_ptrs[(i + 1) / cols] = *out_nnz;
+    }
+  }
+  // END
+
+  // we now multiply using CSR and x
+  // BEGIN
+  for (int i = 0; i < rows; ++i) {
+    int nums_in_rows = row_ptrs[i + 1] - row_ptrs[i];
+    if (nums_in_rows == 0) {
+      y[i] = 0;
+      continue;
+    }
+    for (int j = 0; j < nums_in_rows; ++j) {
+      int tmp_idx = row_ptrs[i] + j;
+      y[i] += values[tmp_idx] * x[col_indices[tmp_idx]];
+    }
+  }
+  // END
 }
 
 // =========================================================
